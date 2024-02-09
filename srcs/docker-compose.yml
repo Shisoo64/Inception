@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  nginx:
+    container_name: nginx
+    networks:
+      - inception
+    build:
+      context: ./nginx
+    volumes:
+      - WordPress-Data:/var/www/html
+    ports:
+      - "443:443"
+    depends_on: 
+      - wordpress
+    restart: always
+  wordpress:
+    container_name: wordpress
+    networks:
+      - inception
+    build:
+      context: ./wordpress
+    volumes:
+      - WordPress-Data:/var/www/html
+    depends_on: 
+      mariadb :
+        condition: service_healthy
+    restart: always
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      WP_ADMIN_NAME: ${WP_ADMIN_NAME}
+      WP_ADMIN_PASSWORD: ${WP_ADMIN_PASSWORD}
+      WP_ADMIN_EMAIL: ${WP_ADMIN_EMAIL}
+      WP_GUEST_NAME: ${WP_GUEST_NAME}
+      WP_GUEST_PASSWORD: ${WP_GUEST_PASSWORD}
+      WP_GUEST_EMAIL: ${WP_GUEST_EMAIL}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PWD: ${MYSQL_PWD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+  mariadb:
+    container_name: mariadb
+    networks:
+      - inception
+    build:
+      context: ./mariadb
+    volumes:
+      - DB:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PWD: ${MYSQL_PWD}
+    healthcheck: 
+      test: ["CMD", "cat", "/tmp/endfile"]
+      interval: 10s
+    
+networks:
+  inception:
+    driver: bridge
+
+volumes:
+  WordPress-Data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/rlaforge/data/wordpress
+      o: bind
+  DB:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/rlaforge/data/db
+      o: bind
